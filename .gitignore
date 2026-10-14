@@ -1,0 +1,27 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Frontend
+node_modules/
+frontend/dist/
+
+# Machine learning generated files
+*.joblib
+*.pkl
+
+# Private uploads and local database
+uploads/*
+!uploads/.gitkeep
+database/*.db
+database/*.sqlite
+database/*.sqlite3
+
+# IDE and operating system
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
