@@ -1,0 +1,278 @@
+{
+  "model_name": "Heart Disease Coronary Artery Disease Classifier",
+  "version": "1.0.0",
+  "artifact_path": "Machine_Learning\\artifacts\\heart_disease_pipeline_v1.joblib",
+  "dataset": {
+    "name": "UCI Heart Disease",
+    "file": "Machine_Learning/datasets/raw/heart_disease_uci.csv",
+    "total_records": 920,
+    "target_column": "num",
+    "target_definition": "Coronary artery disease presence (num > 0) defined as >=50% diameter stenosis in major vessels",
+    "classes": {
+      "0": "No Coronary Artery Disease (<50% stenosis)",
+      "1": "Coronary Artery Disease Present (>=50% stenosis)"
+    }
+  },
+  "training": {
+    "algorithm": "Support Vector Classifier (RBF)",
+    "hyperparameters": {
+      "C": "1.0",
+      "break_ties": "False",
+      "cache_size": "200",
+      "class_weight": "balanced",
+      "coef0": "0.0",
+      "decision_function_shape": "ovr",
+      "degree": "3",
+      "gamma": "scale",
+      "kernel": "rbf",
+      "max_iter": "-1",
+      "probability": "True",
+      "random_state": "42",
+      "shrinking": "True",
+      "tol": "0.001",
+      "verbose": "False"
+    },
+    "random_seed": 42,
+    "split_ratio": {
+      "train": 0.7,
+      "val": 0.1,
+      "test": 0.2
+    },
+    "train_samples": 644,
+    "val_samples": 92,
+    "test_samples": 184,
+    "timestamp_utc": "2026-10-15T15:13:01.236845+00:00"
+  },
+  "feature_schema": {
+    "raw_input_features": [
+      "age",
+      "sex",
+      "cp",
+      "trestbps",
+      "chol",
+      "fbs",
+      "restecg",
+      "thalch",
+      "exang",
+      "oldpeak",
+      "slope",
+      "ca",
+      "thal"
+    ],
+    "transformed_features": [
+      "age",
+      "trestbps",
+      "chol",
+      "thalch",
+      "oldpeak",
+      "ca",
+      "max_hr_ratio",
+      "chronotropic_incompetence",
+      "st_depression_significant",
+      "age_ge_60",
+      "sex_Female",
+      "sex_Male",
+      "cp_asymptomatic",
+      "cp_atypical angina",
+      "cp_non-anginal",
+      "cp_typical angina",
+      "fbs_False",
+      "fbs_True",
+      "restecg_lv hypertrophy",
+      "restecg_normal",
+      "restecg_st-t abnormality",
+      "exang_False",
+      "exang_True",
+      "slope_downsloping",
+      "slope_flat",
+      "slope_upsloping",
+      "thal_fixed defect",
+      "thal_normal",
+      "thal_reversable defect"
+    ],
+    "transformed_feature_count": 29
+  },
+  "validation_model_comparison": {
+    "Dummy (Stratified Baseline)": {
+      "sample_count": 92,
+      "decision_threshold": 0.5,
+      "accuracy": 0.4891,
+      "balanced_accuracy": 0.4794,
+      "precision": 0.537,
+      "recall_sensitivity": 0.5686,
+      "specificity": 0.3902,
+      "f1_score": 0.5524,
+      "negative_predictive_value": 0.4211,
+      "confusion_matrix": {
+        "true_negatives": 16,
+        "false_positives": 25,
+        "false_negatives": 22,
+        "true_positives": 29,
+        "matrix": [
+          [
+            16,
+            25
+          ],
+          [
+            22,
+            29
+          ]
+        ]
+      },
+      "roc_auc": 0.4794,
+      "pr_auc": 0.6724,
+      "brier_score": 0.5109
+    },
+    "Logistic Regression (Balanced)": {
+      "sample_count": 92,
+      "decision_threshold": 0.5,
+      "accuracy": 0.7826,
+      "balanced_accuracy": 0.7776,
+      "precision": 0.7925,
+      "recall_sensitivity": 0.8235,
+      "specificity": 0.7317,
+      "f1_score": 0.8077,
+      "negative_predictive_value": 0.7692,
+      "confusion_matrix": {
+        "true_negatives": 30,
+        "false_positives": 11,
+        "false_negatives": 9,
+        "true_positives": 42,
+        "matrix": [
+          [
+            30,
+            11
+          ],
+          [
+            9,
+            42
+          ]
+        ]
+      },
+      "roc_auc": 0.836,
+      "pr_auc": 0.8469,
+      "brier_score": 0.1702
+    },
+    "Random Forest (Depth 6)": {
+      "sample_count": 92,
+      "decision_threshold": 0.5,
+      "accuracy": 0.7717,
+      "balanced_accuracy": 0.7678,
+      "precision": 0.7885,
+      "recall_sensitivity": 0.8039,
+      "specificity": 0.7317,
+      "f1_score": 0.7961,
+      "negative_predictive_value": 0.75,
+      "confusion_matrix": {
+        "true_negatives": 30,
+        "false_positives": 11,
+        "false_negatives": 10,
+        "true_positives": 41,
+        "matrix": [
+          [
+            30,
+            11
+          ],
+          [
+            10,
+            41
+          ]
+        ]
+      },
+      "roc_auc": 0.8312,
+      "pr_auc": 0.8328,
+      "brier_score": 0.1637
+    },
+    "Gradient Boosting": {
+      "sample_count": 92,
+      "decision_threshold": 0.5,
+      "accuracy": 0.7826,
+      "balanced_accuracy": 0.7752,
+      "precision": 0.7818,
+      "recall_sensitivity": 0.8431,
+      "specificity": 0.7073,
+      "f1_score": 0.8113,
+      "negative_predictive_value": 0.7838,
+      "confusion_matrix": {
+        "true_negatives": 29,
+        "false_positives": 12,
+        "false_negatives": 8,
+        "true_positives": 43,
+        "matrix": [
+          [
+            29,
+            12
+          ],
+          [
+            8,
+            43
+          ]
+        ]
+      },
+      "roc_auc": 0.8379,
+      "pr_auc": 0.8342,
+      "brier_score": 0.1625
+    },
+    "Support Vector Classifier (RBF)": {
+      "sample_count": 92,
+      "decision_threshold": 0.5,
+      "accuracy": 0.7935,
+      "balanced_accuracy": 0.7874,
+      "precision": 0.7963,
+      "recall_sensitivity": 0.8431,
+      "specificity": 0.7317,
+      "f1_score": 0.819,
+      "negative_predictive_value": 0.7895,
+      "confusion_matrix": {
+        "true_negatives": 30,
+        "false_positives": 11,
+        "false_negatives": 8,
+        "true_positives": 43,
+        "matrix": [
+          [
+            30,
+            11
+          ],
+          [
+            8,
+            43
+          ]
+        ]
+      },
+      "roc_auc": 0.846,
+      "pr_auc": 0.8672,
+      "brier_score": 0.1594
+    }
+  },
+  "measured_test_metrics": {
+    "sample_count": 184,
+    "decision_threshold": 0.5,
+    "accuracy": 0.8152,
+    "balanced_accuracy": 0.8094,
+    "precision": 0.8148,
+    "recall_sensitivity": 0.8627,
+    "specificity": 0.7561,
+    "f1_score": 0.8381,
+    "negative_predictive_value": 0.8158,
+    "confusion_matrix": {
+      "true_negatives": 62,
+      "false_positives": 20,
+      "false_negatives": 14,
+      "true_positives": 88,
+      "matrix": [
+        [
+          62,
+          20
+        ],
+        [
+          14,
+          88
+        ]
+      ]
+    },
+    "roc_auc": 0.8985,
+    "pr_auc": 0.9119,
+    "brier_score": 0.1273
+  },
+  "clinical_prototype_disclaimer": "This model is a research and educational prototype. It is NOT certified as a diagnostic device. Evaluations reflect retrospective dataset performance and do NOT represent verified prospective patient risk."
+}

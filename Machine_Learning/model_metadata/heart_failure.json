@@ -1,0 +1,282 @@
+{
+  "model_name": "Heart Failure Follow-up Mortality Risk Stratifier",
+  "version": "1.0.0",
+  "artifact_path": "Machine_Learning\\artifacts\\heart_failure_pipeline_v1.joblib",
+  "dataset": {
+    "name": "Heart Failure Clinical Records",
+    "file": "Machine_Learning/datasets/raw/heart_failure.csv",
+    "total_records": 299,
+    "target_column": "DEATH_EVENT",
+    "target_definition": "All-cause mortality during post-admission follow-up among confirmed NYHA Class III-IV heart failure patients",
+    "classes": {
+      "0": "Survived Follow-up Period",
+      "1": "Deceased During Follow-up Period"
+    }
+  },
+  "task_feasibility_and_scope": {
+    "supported_task": "Prognostic mortality risk stratification for patients with diagnosed heart failure",
+    "unsupported_tasks": [
+      "heart_failure_screening",
+      "heart_failure_diagnosis",
+      "incidence_prediction_in_healthy_cohorts"
+    ],
+    "clinical_task_mismatch_justification": "The dataset contains exclusively hospitalized patients with confirmed NYHA Class III-IV heart failure. There are no healthy or non-heart-failure controls. Relabeling DEATH_EVENT as a heart-failure diagnostic prediction is medically invalid and violates Rule 8.",
+    "data_leakage_safeguards": "Follow-up duration (column 'time') was strictly excluded from predictors because future observation duration is unknown at clinical intake.",
+    "sample_size_uncertainty": "Small cohort (N=299, 96 death events). Measured test performance has wide confidence intervals and reflects single-institution selection bias."
+  },
+  "training": {
+    "algorithm": "Gradient Boosting (Shallow)",
+    "hyperparameters": {
+      "ccp_alpha": "0.0",
+      "criterion": "deprecated",
+      "init": "None",
+      "learning_rate": "0.04",
+      "loss": "log_loss",
+      "max_depth": "2",
+      "max_features": "None",
+      "max_leaf_nodes": "None",
+      "min_impurity_decrease": "0.0",
+      "min_samples_leaf": "1",
+      "min_samples_split": "2",
+      "min_weight_fraction_leaf": "0.0",
+      "n_estimators": "80",
+      "n_iter_no_change": "None",
+      "random_state": "42",
+      "subsample": "1.0",
+      "tol": "0.0001",
+      "validation_fraction": "0.1",
+      "verbose": "0",
+      "warm_start": "False"
+    },
+    "random_seed": 42,
+    "split_ratio": {
+      "train": 0.7,
+      "val": 0.1,
+      "test": 0.2
+    },
+    "train_samples": 209,
+    "val_samples": 30,
+    "test_samples": 60,
+    "timestamp_utc": "2026-10-15T15:13:16.717461+00:00"
+  },
+  "feature_schema": {
+    "raw_input_features": [
+      "age",
+      "anaemia",
+      "creatinine_phosphokinase",
+      "diabetes",
+      "ejection_fraction",
+      "high_blood_pressure",
+      "platelets",
+      "serum_creatinine",
+      "serum_sodium",
+      "sex",
+      "smoking"
+    ],
+    "excluded_features": [
+      "time"
+    ],
+    "transformed_features": [
+      "age",
+      "creatinine_phosphokinase",
+      "ejection_fraction",
+      "platelets",
+      "serum_creatinine",
+      "serum_sodium",
+      "anaemia",
+      "diabetes",
+      "high_blood_pressure",
+      "sex",
+      "smoking",
+      "reduced_ef",
+      "severe_ef_reduction",
+      "renal_dysfunction",
+      "cardiorenal_risk",
+      "hypertension_elderly"
+    ],
+    "transformed_feature_count": 16
+  },
+  "validation_model_comparison": {
+    "Dummy (Stratified Baseline)": {
+      "sample_count": 30,
+      "decision_threshold": 0.5,
+      "accuracy": 0.5,
+      "balanced_accuracy": 0.4,
+      "precision": 0.1429,
+      "recall_sensitivity": 0.1,
+      "specificity": 0.7,
+      "f1_score": 0.1176,
+      "negative_predictive_value": 0.6087,
+      "confusion_matrix": {
+        "true_negatives": 14,
+        "false_positives": 6,
+        "false_negatives": 9,
+        "true_positives": 1,
+        "matrix": [
+          [
+            14,
+            6
+          ],
+          [
+            9,
+            1
+          ]
+        ]
+      },
+      "roc_auc": 0.4,
+      "pr_auc": 0.2714,
+      "brier_score": 0.5
+    },
+    "Logistic Regression (Balanced)": {
+      "sample_count": 30,
+      "decision_threshold": 0.5,
+      "accuracy": 0.7667,
+      "balanced_accuracy": 0.775,
+      "precision": 0.6154,
+      "recall_sensitivity": 0.8,
+      "specificity": 0.75,
+      "f1_score": 0.6957,
+      "negative_predictive_value": 0.8824,
+      "confusion_matrix": {
+        "true_negatives": 15,
+        "false_positives": 5,
+        "false_negatives": 2,
+        "true_positives": 8,
+        "matrix": [
+          [
+            15,
+            5
+          ],
+          [
+            2,
+            8
+          ]
+        ]
+      },
+      "roc_auc": 0.88,
+      "pr_auc": 0.7958,
+      "brier_score": 0.1512
+    },
+    "Random Forest (Depth 4)": {
+      "sample_count": 30,
+      "decision_threshold": 0.5,
+      "accuracy": 0.7667,
+      "balanced_accuracy": 0.75,
+      "precision": 0.6364,
+      "recall_sensitivity": 0.7,
+      "specificity": 0.8,
+      "f1_score": 0.6667,
+      "negative_predictive_value": 0.8421,
+      "confusion_matrix": {
+        "true_negatives": 16,
+        "false_positives": 4,
+        "false_negatives": 3,
+        "true_positives": 7,
+        "matrix": [
+          [
+            16,
+            4
+          ],
+          [
+            3,
+            7
+          ]
+        ]
+      },
+      "roc_auc": 0.88,
+      "pr_auc": 0.7303,
+      "brier_score": 0.1588
+    },
+    "Gradient Boosting (Shallow)": {
+      "sample_count": 30,
+      "decision_threshold": 0.5,
+      "accuracy": 0.8333,
+      "balanced_accuracy": 0.8,
+      "precision": 0.7778,
+      "recall_sensitivity": 0.7,
+      "specificity": 0.9,
+      "f1_score": 0.7368,
+      "negative_predictive_value": 0.8571,
+      "confusion_matrix": {
+        "true_negatives": 18,
+        "false_positives": 2,
+        "false_negatives": 3,
+        "true_positives": 7,
+        "matrix": [
+          [
+            18,
+            2
+          ],
+          [
+            3,
+            7
+          ]
+        ]
+      },
+      "roc_auc": 0.89,
+      "pr_auc": 0.7784,
+      "brier_score": 0.1382
+    },
+    "Support Vector Classifier (RBF)": {
+      "sample_count": 30,
+      "decision_threshold": 0.5,
+      "accuracy": 0.7333,
+      "balanced_accuracy": 0.725,
+      "precision": 0.5833,
+      "recall_sensitivity": 0.7,
+      "specificity": 0.75,
+      "f1_score": 0.6364,
+      "negative_predictive_value": 0.8333,
+      "confusion_matrix": {
+        "true_negatives": 15,
+        "false_positives": 5,
+        "false_negatives": 3,
+        "true_positives": 7,
+        "matrix": [
+          [
+            15,
+            5
+          ],
+          [
+            3,
+            7
+          ]
+        ]
+      },
+      "roc_auc": 0.83,
+      "pr_auc": 0.7306,
+      "brier_score": 0.1539
+    }
+  },
+  "measured_test_metrics": {
+    "sample_count": 60,
+    "decision_threshold": 0.5,
+    "accuracy": 0.7,
+    "balanced_accuracy": 0.5969,
+    "precision": 0.5455,
+    "recall_sensitivity": 0.3158,
+    "specificity": 0.878,
+    "f1_score": 0.4,
+    "negative_predictive_value": 0.7347,
+    "confusion_matrix": {
+      "true_negatives": 36,
+      "false_positives": 5,
+      "false_negatives": 13,
+      "true_positives": 6,
+      "matrix": [
+        [
+          36,
+          5
+        ],
+        [
+          13,
+          6
+        ]
+      ]
+    },
+    "roc_auc": 0.7766,
+    "pr_auc": 0.5241,
+    "brier_score": 0.1847
+  },
+  "clinical_prototype_disclaimer": "This model is a research and educational prototype. It is NOT certified as a diagnostic device. Evaluations reflect retrospective dataset performance and do NOT represent verified prospective patient risk."
+}

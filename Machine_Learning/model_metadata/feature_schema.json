@@ -1,0 +1,185 @@
+{
+  "coronary_artery_disease": {
+    "task_identifier": "coronary_artery_disease",
+    "aliases": ["heart_disease", "cad"],
+    "target_column": "num",
+    "target_definition": "Presence of coronary artery disease (>=50% diameter stenosis in major coronary artery)",
+    "supported": true,
+    "features": {
+      "age": {
+        "type": "integer",
+        "description": "Patient age in years",
+        "valid_range": [18, 120],
+        "units": "years",
+        "required": true
+      },
+      "sex": {
+        "type": "categorical",
+        "description": "Biological sex",
+        "allowed_values": ["Male", "Female"],
+        "required": true
+      },
+      "cp": {
+        "type": "categorical",
+        "description": "Chest pain type",
+        "allowed_values": ["typical angina", "atypical angina", "non-anginal", "asymptomatic"],
+        "required": true
+      },
+      "trestbps": {
+        "type": "float",
+        "description": "Resting systolic blood pressure upon admission",
+        "valid_range": [50, 260],
+        "units": "mm Hg",
+        "required": true
+      },
+      "chol": {
+        "type": "float",
+        "description": "Serum cholesterol",
+        "valid_range": [0, 700],
+        "units": "mg/dL",
+        "required": true
+      },
+      "fbs": {
+        "type": "categorical",
+        "description": "Fasting blood sugar > 120 mg/dL",
+        "allowed_values": [true, false, "True", "False", 1, 0],
+        "required": true
+      },
+      "restecg": {
+        "type": "categorical",
+        "description": "Resting electrocardiographic results",
+        "allowed_values": ["normal", "lv hypertrophy", "st-t abnormality"],
+        "required": true
+      },
+      "thalch": {
+        "type": "float",
+        "description": "Maximum heart rate achieved during exercise treadmill test",
+        "valid_range": [50, 240],
+        "units": "bpm",
+        "required": true
+      },
+      "exang": {
+        "type": "categorical",
+        "description": "Exercise-induced angina",
+        "allowed_values": [true, false, "True", "False", 1, 0],
+        "required": true
+      },
+      "oldpeak": {
+        "type": "float",
+        "description": "ST depression induced by exercise relative to rest",
+        "valid_range": [-3.0, 10.0],
+        "units": "mm",
+        "required": true
+      },
+      "slope": {
+        "type": "categorical",
+        "description": "Slope of the peak exercise ST segment",
+        "allowed_values": ["upsloping", "flat", "downsloping"],
+        "required": true
+      },
+      "ca": {
+        "type": "integer",
+        "description": "Number of major vessels (0-3) colored by fluoroscopy",
+        "valid_range": [0, 3],
+        "required": true
+      },
+      "thal": {
+        "type": "categorical",
+        "description": "Thallium scintigraphy stress test defect",
+        "allowed_values": ["normal", "fixed defect", "reversable defect"],
+        "required": true
+      }
+    }
+  },
+  "heart_failure_mortality": {
+    "task_identifier": "heart_failure_mortality",
+    "aliases": ["heart_failure_risk", "hf_mortality"],
+    "target_column": "DEATH_EVENT",
+    "target_definition": "All-cause mortality during post-admission follow-up among confirmed NYHA Class III-IV heart failure patients",
+    "supported": true,
+    "unsupported_tasks": ["heart_failure_screening", "heart_failure_diagnosis"],
+    "features": {
+      "age": {
+        "type": "integer",
+        "description": "Patient age in years",
+        "valid_range": [18, 120],
+        "units": "years",
+        "required": true
+      },
+      "anaemia": {
+        "type": "categorical",
+        "description": "Decrease of red blood cells or hemoglobin (hematocrit < 36%)",
+        "allowed_values": [0, 1, true, false],
+        "required": true
+      },
+      "creatinine_phosphokinase": {
+        "type": "float",
+        "description": "Level of the CPK enzyme in the blood",
+        "valid_range": [10, 10000],
+        "units": "mcg/L",
+        "required": true
+      },
+      "diabetes": {
+        "type": "categorical",
+        "description": "Pre-existing diabetes diagnosis",
+        "allowed_values": [0, 1, true, false],
+        "required": true
+      },
+      "ejection_fraction": {
+        "type": "float",
+        "description": "Percentage of blood leaving the heart at each contraction",
+        "valid_range": [10, 80],
+        "units": "%",
+        "required": true
+      },
+      "high_blood_pressure": {
+        "type": "categorical",
+        "description": "Pre-existing chronic hypertension diagnosis",
+        "allowed_values": [0, 1, true, false],
+        "required": true
+      },
+      "platelets": {
+        "type": "float",
+        "description": "Platelet count in the blood",
+        "valid_range": [10000, 1500000],
+        "units": "kiloplatelets/mL",
+        "required": true
+      },
+      "serum_creatinine": {
+        "type": "float",
+        "description": "Level of serum creatinine in the blood",
+        "valid_range": [0.1, 15.0],
+        "units": "mg/dL",
+        "required": true
+      },
+      "serum_sodium": {
+        "type": "float",
+        "description": "Level of serum sodium in the blood",
+        "valid_range": [100, 175],
+        "units": "mEq/L",
+        "required": true
+      },
+      "sex": {
+        "type": "categorical",
+        "description": "Biological sex (0: Female, 1: Male)",
+        "allowed_values": [0, 1, "Male", "Female"],
+        "required": true
+      },
+      "smoking": {
+        "type": "categorical",
+        "description": "Active cigarette smoker",
+        "allowed_values": [0, 1, true, false],
+        "required": true
+      }
+    }
+  },
+  "arrhythmia_ecg": {
+    "task_identifier": "arrhythmia_ecg",
+    "aliases": ["arrhythmia", "ecg_classification"],
+    "target_column": "condition_group",
+    "target_definition": "Multi-class categorization of precomputed 12-lead ECG waveform measurements into 5 clinical condition categories",
+    "supported": true,
+    "unsupported_tasks": ["arrhythmia_symptom_screening", "ecg_waveform_analysis"],
+    "modality_requirement": "Requires 279 precomputed quantitative numerical features extracted from a 12-lead ECG. Symptom inputs (palpitations, dizziness) without ECG parameters are rejected."
+  }
+}
