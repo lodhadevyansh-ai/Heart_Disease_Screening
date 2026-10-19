@@ -206,16 +206,16 @@ def verify_patient_access(target_patient_id: int) -> Optional[tuple]:
     Check if the authenticated user has authorization to access `target_patient_id`.
     
     Returns None if permitted, or returns an error response tuple if forbidden.
-    - Clinicians and Admins have authorized access to all patient records.
+    - Admins have administrative access.
+    - Clinicians can ONLY access patient records that they own (patient.user_id == user.sub).
     - Patients can ONLY access their own records (token patient_id == target_patient_id).
     """
     user = get_current_user()
     if not user:
         return api_error(401, "Unauthorized", "Authentication required.")
 
+    user_id = user.get("sub")
     role = user.get("role")
-    if role in ("clinician", "admin"):
-        return None  # Authorized
 
     if role == "patient":
         user_patient_id = user.get("patient_id")
@@ -224,6 +224,23 @@ def verify_patient_access(target_patient_id: int) -> Optional[tuple]:
                 403,
                 "Forbidden",
                 "Privacy Violation: Patients are strictly forbidden from accessing other patients' medical records.",
+            )
+        return None
+
+    from database.models import Patient
+    patient = Patient.query.filter_by(id=target_patient_id).first()
+    if not patient:
+        return api_error(404, "Not Found", f"Patient with ID {target_patient_id} not found.")
+
+    if role == "admin":
+        return None
+
+    if role == "clinician":
+        if patient.user_id is not None and str(patient.user_id) != str(user_id):
+            return api_error(
+                403,
+                "Forbidden",
+                "Access denied: You do not have ownership of this patient record.",
             )
         return None
 

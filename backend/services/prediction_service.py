@@ -37,6 +37,7 @@ class PredictionService:
         for task_key, cfg in SUPPORTED_TASKS.items():
             supported_list.append({
                 "task_name": task_key,
+                "task_id": task_key,
                 "supported": True,
                 "status": "active",
                 "aliases": cfg.get("alias", []),
@@ -219,10 +220,10 @@ class PredictionService:
                 ("serum_creatinine", ["serum_creatinine", "creatinine"]),
                 ("platelets", ["platelets", "platelet_count"]),
                 ("serum_sodium", ["serum_sodium", "sodium"]),
-                ("creatinine_phosphokinase", ["creatinine_phosphokinase", "cpk"]),
+                ("creatinine_phosphokinase", ["creatinine_phosphokinase", "cpk", "ck"]),
                 ("anaemia", ["anaemia", "anemia"]),
                 ("diabetes", ["diabetes"]),
-                ("smoking", ["smoking", "tobacco"]),
+                ("smoking", ["smoking", "tobacco", "smoker"]),
             ]:
                 if key not in mapped:
                     for ln in lab_names:
@@ -232,6 +233,31 @@ class PredictionService:
                                 break
                             except (ValueError, TypeError):
                                 pass
+
+            # Clinical lab derivation: Anaemia from Hemoglobin (< 12 g/dL)
+            if "anaemia" not in mapped:
+                for ln in ["hemoglobin", "hb", "hgb"]:
+                    if ln in lab_dict and lab_dict[ln] is not None:
+                        try:
+                            mapped["anaemia"] = 1 if float(lab_dict[ln]) < 12.0 else 0
+                            break
+                        except (ValueError, TypeError):
+                            pass
+
+            # Clinical lab derivation: Diabetes from Fasting Glucose (>= 126 mg/dL) or HbA1c (>= 6.5%)
+            if "diabetes" not in mapped:
+                for ln in ["fasting_glucose", "fbs", "glucose"]:
+                    if ln in lab_dict and lab_dict[ln] is not None:
+                        try:
+                            mapped["diabetes"] = 1 if float(lab_dict[ln]) >= 126.0 else 0
+                            break
+                        except (ValueError, TypeError):
+                            pass
+                if "diabetes" not in mapped and "hba1c" in lab_dict and lab_dict["hba1c"] is not None:
+                    try:
+                        mapped["diabetes"] = 1 if float(lab_dict["hba1c"]) >= 6.5 else 0
+                    except (ValueError, TypeError):
+                        pass
 
             return mapped
 
@@ -338,3 +364,50 @@ class PredictionService:
             .order_by(ModelPrediction.created_at.desc())
             .all()
         )
+
+    @classmethod
+    def check_task_readiness(cls, assessment_id: int) -> Dict[str, Any]:
+        """
+        Evaluate which supported ML tasks can run on this assessment encounter's
+        available clinical data (demographics, symptoms, vitals, structured labs).
+        """
+        assessment = Assessment.query.filter_by(id=assessment_id).first()
+        if not assessment:
+            return {}
+
+        readiness: Dict[str, Any] = {}
+        for task_key, cfg in SUPPORTED_TASKS.items():
+            if task_key == "arrhythmia_ecg":
+                readiness[task_key] = {
+                    "task_name": task_key,
+                    "task_id": task_key,
+                    "ready": False,
+                    "missing_features": ["279 precomputed ECG wave metrics"],
+                    "available_features_count": 0,
+                    "required_features_count": 279,
+                    "score_type": cfg["score_type"],
+                    "is_probability_calibrated": cfg["is_probability_calibrated"],
+                }
+                continue
+
+            try:
+                mapped = cls.map_assessment_to_features(assessment=assessment, task_name=task_key)
+            except Exception:
+                mapped = {}
+
+            required = cfg.get("required_features", [])
+            missing = [f for f in required if f not in mapped or mapped[f] is None]
+
+            readiness[task_key] = {
+                "task_name": task_key,
+                "task_id": task_key,
+                "ready": len(missing) == 0,
+                "missing_features": missing,
+                "available_features": mapped,
+                "available_features_count": len([f for f in required if f in mapped and mapped[f] is not None]),
+                "required_features_count": len(required),
+                "score_type": cfg["score_type"],
+                "is_probability_calibrated": cfg["is_probability_calibrated"],
+            }
+
+        return readiness

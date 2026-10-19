@@ -16,4 +16,13 @@ export const predictionService = {
   async getPredictionHistory(assessmentId) {
     return apiClient.get(`/assessments/${assessmentId}/predictions`);
   },
+
+  async getPredictionById(predictionId) {
+    return apiClient.get(`/predictions/${predictionId}`);
+  },
+
+  async getTaskReadiness(assessmentId) {
+    return apiClient.get(`/assessments/${assessmentId}/readiness`);
+  },
 };
+

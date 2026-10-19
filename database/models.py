@@ -72,6 +72,7 @@ class User(BaseModel):
     """
 
     __tablename__ = "users"
+    __table_args__ = {"sqlite_autoincrement": True}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     full_name = Column(String(120), nullable=False)
@@ -95,7 +96,8 @@ class User(BaseModel):
     )
 
     # Relationships
-    patient = relationship("Patient", foreign_keys=[patient_id], backref=db.backref("user", uselist=False))
+    patient_profile = relationship("Patient", foreign_keys=[patient_id])
+    patients = relationship("Patient", foreign_keys="[Patient.user_id]", back_populates="user", cascade="all, delete-orphan")
 
     def set_password(self, password: str) -> None:
         """Hash and set user password."""
@@ -130,8 +132,10 @@ class Patient(BaseModel):
     """
 
     __tablename__ = "patients"
+    __table_args__ = {"sqlite_autoincrement": True}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     patient_code = Column(String(36), unique=True, nullable=False, index=True)
     age = Column(Integer, nullable=False)
     sex = Column(String(10), nullable=False)  # 'Male', 'Female'
@@ -152,6 +156,7 @@ class Patient(BaseModel):
     )
 
     # Relationships
+    user = relationship("User", foreign_keys=[user_id], back_populates="patients")
     assessments = relationship(
         "Assessment",
         back_populates="patient",
@@ -162,6 +167,7 @@ class Patient(BaseModel):
     def to_dict(self) -> Dict[str, Any]:
         return {
             "id": self.id,
+            "user_id": self.user_id,
             "patient_code": self.patient_code,
             "age": self.age,
             "sex": self.sex,
@@ -389,6 +395,8 @@ class ClinicalDocument(BaseModel):
             "parsing_status": self.parsing_status,
             "is_verified_by_clinician": self.is_verified_by_clinician,
             "uploaded_at": to_iso_utc(self.uploaded_at),
+            "created_at": to_iso_utc(self.uploaded_at),
+            "extracted_measurements_count": len(self.lab_measurements) if self.lab_measurements is not None else 0,
         }
 
 

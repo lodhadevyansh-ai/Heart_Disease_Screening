@@ -32,6 +32,7 @@ def list_patients():
     """List patient records with pagination and search."""
     user = get_current_user()
     role = user.get("role") if user else None
+    user_id = user.get("sub") if user else None
 
     # If role is patient, restrict list to their own profile only
     if role == "patient":
@@ -50,7 +51,7 @@ def list_patients():
             }
         )
 
-    # Clinicians and Admins can query all patients
+    # Clinicians only query their own patient records; Admins can query all
     try:
         page = int(request.args.get("page", 1))
         per_page = min(int(request.args.get("per_page", 20)), 100)
@@ -66,7 +67,10 @@ def list_patients():
         else None
     )
 
+    scoped_user_id = int(user_id) if (role == "clinician" and user_id and str(user_id).isdigit()) else None
+
     items, total = PatientService.list_patients(
+        user_id=scoped_user_id,
         page=page,
         per_page=per_page,
         search=search,
@@ -92,9 +96,11 @@ def list_patients():
 @roles_required("clinician", "admin")
 @validate_schema(PatientCreateSchema)
 def create_patient(validated_data: PatientCreateSchema):
-    """Create a new de-identified patient record."""
+    """Create a new de-identified patient record owned by the authenticated clinician."""
+    user = get_current_user()
+    user_id = int(user["sub"]) if user and user.get("sub") and str(user["sub"]).isdigit() else None
     try:
-        patient = PatientService.create_patient(validated_data)
+        patient = PatientService.create_patient(validated_data, user_id=user_id)
         return api_response(
             data=patient.to_dict(),
             message="Patient profile created successfully.",
@@ -107,7 +113,7 @@ def create_patient(validated_data: PatientCreateSchema):
 @patient_bp.route("/<int:patient_id>", methods=["GET"])
 @jwt_required()
 def get_patient(patient_id: int):
-    """Retrieve detailed patient profile."""
+    """Retrieve detailed patient profile with ownership verification."""
     auth_check = verify_patient_access(patient_id)
     if auth_check:
         return auth_check
@@ -126,7 +132,11 @@ def get_patient(patient_id: int):
 @roles_required("clinician", "admin")
 @validate_schema(PatientUpdateSchema)
 def update_patient(patient_id: int, validated_data: PatientUpdateSchema):
-    """Update patient demographics or notes."""
+    """Update patient demographics or notes with ownership verification."""
+    auth_check = verify_patient_access(patient_id)
+    if auth_check:
+        return auth_check
+
     patient = PatientService.update_patient(patient_id, validated_data)
     if not patient:
         return api_error(404, "Not Found", f"Patient with ID {patient_id} not found.")
@@ -139,7 +149,7 @@ def update_patient(patient_id: int, validated_data: PatientUpdateSchema):
 @patient_bp.route("/<int:patient_id>/assessments", methods=["GET"])
 @jwt_required()
 def list_patient_assessments(patient_id: int):
-    """List clinical assessment encounters for a patient."""
+    """List clinical assessment encounters for a patient with ownership verification."""
     auth_check = verify_patient_access(patient_id)
     if auth_check:
         return auth_check
@@ -156,7 +166,11 @@ def list_patient_assessments(patient_id: int):
 @jwt_required()
 @roles_required("clinician", "admin")
 def create_patient_assessment(patient_id: int):
-    """Initiate a new clinical assessment encounter."""
+    """Initiate a new clinical assessment encounter with ownership verification."""
+    auth_check = verify_patient_access(patient_id)
+    if auth_check:
+        return auth_check
+
     patient = PatientService.get_patient_by_id(patient_id)
     if not patient:
         return api_error(404, "Not Found", f"Patient with ID {patient_id} not found.")

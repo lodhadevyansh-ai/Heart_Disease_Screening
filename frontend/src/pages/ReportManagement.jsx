@@ -87,6 +87,9 @@ export default function ReportManagement() {
     loadData();
   }, [assessmentId]);
 
+  const [extractedReportInfo, setExtractedReportInfo] = useState(null);
+  const [parsingDocId, setParsingDocId] = useState(null);
+
   const handleUploadDocument = async (file, category) => {
     if (!assessmentId) {
       setError('Please select an active clinical assessment encounter first.');
@@ -98,11 +101,54 @@ export default function ReportManagement() {
     try {
       const res = await reportService.uploadDocument(assessmentId, file, category);
       setDocuments((prev) => [res, ...prev]);
-      setSuccessMessage(`Document "${file.name}" uploaded securely (SHA-256 verified).`);
+
+      // Refresh lab measurements so extracted values populate the table immediately
+      try {
+        const labsRes = await reportService.listLabMeasurements(assessmentId);
+        setLabs(labsRes || []);
+      } catch {
+        // non-blocking
+      }
+
+      const count = res?.extracted_measurements?.length || 0;
+      if (count > 0) {
+        setSuccessMessage(`Document "${file.name}" uploaded and ${count} clinical parameters extracted successfully.`);
+        setExtractedReportInfo({
+          filename: file.name,
+          count,
+          measurements: res.extracted_measurements,
+        });
+      } else {
+        setSuccessMessage(`Document "${file.name}" uploaded securely (SHA-256 verified).`);
+      }
     } catch (err) {
       setError(err.message || 'Failed to upload document.');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleReParse = async (docId) => {
+    setParsingDocId(docId);
+    setError(null);
+    try {
+      const res = await reportService.parseDocument(docId);
+      const items = res?.extracted_measurements || [];
+      const updatedDocs = await reportService.listDocuments(assessmentId);
+      setDocuments(updatedDocs || []);
+      const updatedLabs = await reportService.listLabMeasurements(assessmentId);
+      setLabs(updatedLabs || []);
+
+      setSuccessMessage(`Document re-parsed: ${items.length} clinical parameters extracted and synced.`);
+      setExtractedReportInfo({
+        filename: res.original_filename || `Document #${docId}`,
+        count: items.length,
+        measurements: items,
+      });
+    } catch (err) {
+      setError('Re-parsing failed: ' + (err.message || String(err)));
+    } finally {
+      setParsingDocId(null);
     }
   };
 
@@ -241,6 +287,79 @@ export default function ReportManagement() {
               </div>
             </div>
           </div>
+
+          {/* Extracted Clinical Report Review Card */}
+          {extractedReportInfo && (
+            <div className="clean-card" style={{ marginBottom: '2rem', border: '2px solid #86efac', backgroundColor: '#f0fdf4' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    backgroundColor: '#dcfce7',
+                    color: '#15803d',
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: 'var(--radius-pill)',
+                    display: 'inline-block',
+                    marginBottom: '0.4rem',
+                  }}>
+                    &check; Structured Extraction Complete
+                  </span>
+                  <h3 style={{ fontSize: '1.25rem', color: '#14532d', margin: 0 }}>
+                    {extractedReportInfo.count} Clinical Values Extracted from &ldquo;{extractedReportInfo.filename}&rdquo;
+                  </h3>
+                  <p style={{ fontSize: '0.85rem', color: '#166534', marginTop: '0.25rem' }}>
+                    Extracted biomarkers and physiological metrics have been parsed and synced to encounter records.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <Link
+                    to={`/prediction-results?assessment_id=${assessmentId}`}
+                    className="btn btn-primary"
+                    style={{ backgroundColor: '#15803d', borderColor: '#15803d' }}
+                  >
+                    View ML Predictions &rarr;
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setExtractedReportInfo(null)}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+
+              {/* Sample preview grid of extracted parameters */}
+              {extractedReportInfo.measurements && extractedReportInfo.measurements.length > 0 && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                  gap: '0.75rem',
+                  marginTop: '1rem',
+                  paddingTop: '1rem',
+                  borderTop: '1px solid #bbf7d0',
+                }}>
+                  {extractedReportInfo.measurements.slice(0, 8).map((m, idx) => (
+                    <div key={idx} style={{
+                      backgroundColor: '#ffffff',
+                      padding: '0.6rem 0.75rem',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid #dcfce7',
+                    }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>
+                        {m.test_name?.replace(/_/g, ' ')}
+                      </div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: m.flag === 'high' || m.flag === 'abnormal' ? 'var(--primary-red)' : 'var(--text-main)' }}>
+                        {m.value_numeric !== null && m.value_numeric !== undefined ? m.value_numeric : m.value_text} {m.unit || ''}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Tab Navigation */}
           <div style={{
@@ -416,8 +535,33 @@ export default function ReportManagement() {
                               </div>
 
                               <div>
-                                <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem' }}>
-                                  {doc.original_filename}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                                  <span style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem' }}>
+                                    {doc.original_filename}
+                                  </span>
+                                  {doc.parsing_status === 'parsed' ? (
+                                    <span style={{
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                      backgroundColor: '#dcfce7',
+                                      color: '#15803d',
+                                      padding: '0.15rem 0.5rem',
+                                      borderRadius: 'var(--radius-pill)',
+                                    }}>
+                                      &check; Parsed ({doc.extracted_measurements_count || 'clinical'} values)
+                                    </span>
+                                  ) : (
+                                    <span style={{
+                                      fontSize: '0.72rem',
+                                      fontWeight: 600,
+                                      backgroundColor: '#f1f5f9',
+                                      color: '#475569',
+                                      padding: '0.15rem 0.5rem',
+                                      borderRadius: 'var(--radius-pill)',
+                                    }}>
+                                      {doc.parsing_status?.replace(/_/g, ' ')}
+                                    </span>
+                                  )}
                                 </div>
                                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                                   Category: {doc.document_category?.replace(/_/g, ' ')} &bull; Uploaded: {formatDateTime(doc.created_at)}
@@ -428,13 +572,32 @@ export default function ReportManagement() {
                               </div>
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={() => handleDownload(doc)}
-                              className="btn btn-secondary btn-sm"
-                            >
-                              Download File
-                            </button>
+                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                              {doc.parsing_status === 'parsed' && (
+                                <Link
+                                  to={`/prediction-results?assessment_id=${assessmentId}`}
+                                  className="btn btn-primary btn-sm"
+                                  style={{ textDecoration: 'none' }}
+                                >
+                                  View ML Predictions &rarr;
+                                </Link>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleReParse(doc.id)}
+                                disabled={parsingDocId === doc.id}
+                                className="btn btn-secondary btn-sm"
+                              >
+                                {parsingDocId === doc.id ? 'Extracting...' : (doc.parsing_status === 'parsed' ? 'Re-Parse' : 'Extract Data')}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDownload(doc)}
+                                className="btn btn-secondary btn-sm"
+                              >
+                                Download File
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>

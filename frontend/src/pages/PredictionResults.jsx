@@ -78,23 +78,27 @@ export default function PredictionResults() {
     }
   };
 
+  const [taskReadiness, setTaskReadiness] = useState(null);
+
   // Load encounter details and prediction history when assessmentId changes
   useEffect(() => {
     if (!assessmentId) return;
 
     async function loadEncounterData() {
       try {
-        const [assess, sym, vit, preds] = await Promise.all([
+        const [assess, sym, vit, preds, readiness] = await Promise.all([
           symptomService.getAssessment(assessmentId).catch(() => null),
           symptomService.getSymptoms(assessmentId).catch(() => null),
           symptomService.getVitals(assessmentId).catch(() => null),
           predictionService.getPredictionHistory(assessmentId).catch(() => []),
+          predictionService.getTaskReadiness(assessmentId).catch(() => null),
         ]);
 
         setAssessmentDetails(assess);
         setSymptomsData(sym);
         setVitalsData(vit);
         setPredictions(preds || []);
+        setTaskReadiness(readiness);
       } catch (err) {
         setError(err.message || 'Failed to load encounter details.');
       }
@@ -107,11 +111,19 @@ export default function PredictionResults() {
     setSelectedTask(taskId);
     setUnsupportedWarning(null);
 
-    const isSupported = taskCatalog?.supported_tasks?.some((t) => t.task_id === taskId);
-    if (!isSupported && taskId !== 'coronary_artery_disease' && taskId !== 'heart_failure_mortality') {
-      setUnsupportedWarning(
-        `The task "${taskId}" is currently not supported by our validated ML pipelines. Our clinical decision support engine prohibits generating fabricated or mock predictions for uncalibrated models.`
-      );
+    const isSupported = (
+      taskCatalog?.supported_tasks?.some((t) => t.task_id === taskId || t.task_name === taskId) ||
+      taskId === 'coronary_artery_disease' ||
+      taskId === 'heart_failure_mortality'
+    ) && taskId !== 'heart_failure_screening';
+
+    if (!isSupported) {
+      const specificMsg =
+        taskCatalog?.unsupported_tasks?.[taskId] ||
+        (taskId === 'heart_failure_screening'
+          ? 'UNSUPPORTED TASK: Heart failure screening in general populations is prohibited. The underlying dataset contains exclusively hospitalized NYHA Class III-IV patients with confirmed heart failure and no non-heart-failure controls. Predicting heart failure occurrence from this dataset is medically invalid.'
+          : `The task "${taskId}" is currently not supported by our validated ML pipelines.`);
+      setUnsupportedWarning(specificMsg);
     }
   };
 
@@ -121,8 +133,8 @@ export default function PredictionResults() {
       return;
     }
 
-    if (unsupportedWarning) {
-      setError('Cannot execute inference on unsupported or uncalibrated task.');
+    if (unsupportedWarning || selectedTask === 'heart_failure_screening') {
+      setError('Cannot execute inference on unsupported task.');
       return;
     }
 
@@ -335,12 +347,24 @@ export default function PredictionResults() {
                     padding: '0.2rem 0.5rem',
                     borderRadius: 'var(--radius-pill)',
                   }}>
-                    Calibrated &bull; Validated
+                    Platt-Calibrated Probability
                   </span>
                 </div>
                 <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.5rem', lineHeight: 1.4 }}>
                   Predicts presence of &ge;50% coronary lumen narrowing. Validated on multi-center clinical cohorts.
                 </p>
+                {taskReadiness?.coronary_artery_disease && (
+                  <div style={{
+                    fontSize: '0.76rem',
+                    marginTop: '0.5rem',
+                    color: taskReadiness.coronary_artery_disease.ready ? '#15803d' : '#b45309',
+                    fontWeight: 600,
+                  }}>
+                    {taskReadiness.coronary_artery_disease.ready
+                      ? '&check; Input features ready (13/13)'
+                      : `Features: ${taskReadiness.coronary_artery_disease.available_features_count}/13 mapped`}
+                  </div>
+                )}
               </div>
 
               <div
@@ -361,17 +385,29 @@ export default function PredictionResults() {
                   <span style={{
                     fontSize: '0.72rem',
                     fontWeight: 700,
-                    backgroundColor: '#dcfce7',
-                    color: '#15803d',
+                    backgroundColor: '#e0f2fe',
+                    color: '#0369a1',
                     padding: '0.2rem 0.5rem',
                     borderRadius: 'var(--radius-pill)',
                   }}>
-                    Calibrated &bull; Validated
+                    Classifier Confidence Score
                   </span>
                 </div>
                 <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.5rem', lineHeight: 1.4 }}>
-                  Predicts in-hospital or 30-day mortality risk in clinical heart failure presentations.
+                  Predicts follow-up mortality risk (DEATH_EVENT) in diagnosed heart failure patients. Prohibited for screening.
                 </p>
+                {taskReadiness?.heart_failure_mortality && (
+                  <div style={{
+                    fontSize: '0.76rem',
+                    marginTop: '0.5rem',
+                    color: taskReadiness.heart_failure_mortality.ready ? '#15803d' : '#b45309',
+                    fontWeight: 600,
+                  }}>
+                    {taskReadiness.heart_failure_mortality.ready
+                      ? '&check; Input features ready (11/11)'
+                      : `Features: ${taskReadiness.heart_failure_mortality.available_features_count}/11 mapped`}
+                  </div>
+                )}
               </div>
 
               {/* Unsupported Model Example to demonstrate safe validation */}
@@ -403,7 +439,7 @@ export default function PredictionResults() {
                   </span>
                 </div>
                 <p style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '0.5rem', lineHeight: 1.4 }}>
-                  General community HF screening model is under clinical trial and is not authorized for decision support.
+                  General community HF screening model is prohibited. Underlying dataset contains no healthy controls.
                 </p>
               </div>
             </div>
@@ -423,16 +459,29 @@ export default function PredictionResults() {
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-              <button
-                type="button"
-                onClick={handleRunInference}
-                disabled={isInferring || !assessmentId || Boolean(unsupportedWarning)}
-                className="btn btn-primary"
-                style={{ minWidth: '180px' }}
-              >
-                {isInferring ? 'Executing Inference...' : 'Run Calibrated Inference \u2192'}
-              </button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={handleRunInference}
+                  disabled={isInferring || !assessmentId || Boolean(unsupportedWarning)}
+                  className="btn btn-primary"
+                  style={{ minWidth: '200px' }}
+                >
+                  {isInferring ? 'Executing Inference...' : 'Run ML Inference \u2192'}
+                </button>
+              </div>
+
+              {Boolean(unsupportedWarning) && (
+                <div style={{ fontSize: '0.82rem', color: '#b91c1c', fontWeight: 600, textAlign: 'right' }}>
+                  &times; Inference disabled: Selected task is prohibited by clinical validation governance.
+                </div>
+              )}
+              {!assessmentId && (
+                <div style={{ fontSize: '0.82rem', color: '#b45309', fontWeight: 600, textAlign: 'right' }}>
+                  &times; Inference disabled: Please select an active clinical encounter above.
+                </div>
+              )}
             </div>
           </div>
 

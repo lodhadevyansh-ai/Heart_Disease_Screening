@@ -78,3 +78,36 @@ def get_prediction_history(assessment_id: int):
 
     history = PredictionService.get_prediction_history(assessment_id)
     return api_response(data=[p.to_dict() for p in history])
+
+
+@prediction_bp.route("/predictions/<int:prediction_id>", methods=["GET"])
+@jwt_required()
+def get_prediction_by_id(prediction_id: int):
+    """Retrieve an individual model prediction record by ID with ownership verification."""
+    from database.models import ModelPrediction
+    pred = ModelPrediction.query.filter_by(id=prediction_id).first()
+    if not pred:
+        return api_error(404, "Not Found", f"Prediction record with ID {prediction_id} not found.")
+
+    auth_check = verify_patient_access(pred.assessment.patient_id)
+    if auth_check:
+        return auth_check
+
+    return api_response(data=pred.to_dict())
+
+
+@prediction_bp.route("/assessments/<int:assessment_id>/readiness", methods=["GET"])
+@jwt_required()
+def get_task_readiness(assessment_id: int):
+    """Evaluate feature readiness and missing clinical inputs for supported prediction tasks."""
+    assessment = AssessmentService.get_assessment(assessment_id)
+    if not assessment:
+        return api_error(404, "Not Found", f"Assessment with ID {assessment_id} not found.")
+
+    auth_check = verify_patient_access(assessment.patient_id)
+    if auth_check:
+        return auth_check
+
+    readiness = PredictionService.check_task_readiness(assessment_id)
+    return api_response(data=readiness)
+

@@ -52,15 +52,51 @@ def upload_document(assessment_id: int):
         return api_error(400, "Bad Request", error_msg or "File upload failed.")
 
     data = doc.to_dict()
-    data["extraction_notice"] = (
-        "Document securely stored outside public directory. "
-        "No automated diagnostic interpretation performed on unverified raw files."
-    )
+    data["extracted_measurements"] = [m.to_dict() for m in doc.lab_measurements] if doc.lab_measurements else []
+    if doc.parsing_status == "parsed":
+        data["extraction_notice"] = (
+            f"Document processed with status: 'parsed'. "
+            f"{len(data['extracted_measurements'])} structured clinical measurements extracted."
+        )
+    else:
+        data["extraction_notice"] = (
+            "Document securely stored outside public directory. "
+            "No automated diagnostic interpretation performed on unverified raw files."
+        )
 
     return api_response(
         data=data,
-        message="Document uploaded and stored successfully.",
+        message=(
+            f"Document uploaded and {len(data['extracted_measurements'])} clinical parameters extracted successfully."
+            if doc.parsing_status == "parsed"
+            else "Document uploaded and stored successfully."
+        ),
         status_code=201,
+    )
+
+
+@report_bp.route("/documents/<int:document_id>/parse", methods=["POST"])
+@jwt_required()
+def parse_document(document_id: int):
+    """Trigger or re-trigger structured clinical extraction on an uploaded document."""
+    doc = ReportService.get_document(document_id)
+    if not doc:
+        return api_error(404, "Not Found", f"Document with ID {document_id} not found.")
+
+    auth_check = verify_patient_access(doc.assessment.patient_id)
+    if auth_check:
+        return auth_check
+
+    success, updated_doc, items, err = ReportService.parse_document(document_id)
+    if not success:
+        return api_error(400, "Bad Request", err or "Document parsing failed.")
+
+    resp_data = updated_doc.to_dict()
+    resp_data["extracted_measurements"] = items
+    return api_response(
+        data=resp_data,
+        message=f"Successfully extracted {len(items)} structured clinical measurements.",
+        status_code=200,
     )
 
 
@@ -117,6 +153,31 @@ def download_document(document_id: int):
         as_attachment=True,
         download_name=doc.original_filename,
     )
+
+
+@report_bp.route("/documents/<int:document_id>", methods=["DELETE"])
+@jwt_required()
+def delete_document(document_id: int):
+    """Delete an uploaded document and its physical file from storage."""
+    from backend.extensions import db
+    doc = ReportService.get_document(document_id)
+    if not doc:
+        return api_error(404, "Not Found", f"Document with ID {document_id} not found.")
+
+    auth_check = verify_patient_access(doc.assessment.patient_id)
+    if auth_check:
+        return auth_check
+
+    file_path = ReportService.get_document_file_path(doc)
+    try:
+        db.session.delete(doc)
+        db.session.commit()
+        if file_path and file_path.exists():
+            file_path.unlink(missing_ok=True)
+        return api_response(data={"deleted": True}, message="Document deleted successfully.")
+    except Exception as e:
+        db.session.rollback()
+        return api_error(500, "Internal Server Error", f"Failed to delete document: {str(e)}")
 
 
 @report_bp.route("/assessments/<int:assessment_id>/labs", methods=["POST"])

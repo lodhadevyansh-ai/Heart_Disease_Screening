@@ -36,12 +36,13 @@ class PatientService:
         return hashlib.sha256(mrn.strip().encode("utf-8")).hexdigest()
 
     @classmethod
-    def create_patient(cls, data: PatientCreateSchema) -> Patient:
-        """Create a new de-identified patient profile."""
+    def create_patient(cls, data: PatientCreateSchema, user_id: Optional[int] = None) -> Patient:
+        """Create a new de-identified patient profile owned by user_id."""
         code = cls.generate_patient_code()
         mrn_hash = cls.hash_mrn(data.medical_record_number)
 
         patient = Patient(
+            user_id=user_id,
             patient_code=code,
             age=data.age,
             sex=data.sex,
@@ -88,6 +89,7 @@ class PatientService:
 
     @staticmethod
     def list_patients(
+        user_id: Optional[int] = None,
         page: int = 1,
         per_page: int = 20,
         search: Optional[str] = None,
@@ -95,7 +97,7 @@ class PatientService:
         is_active: Optional[bool] = None,
     ) -> Tuple[List[Patient], int]:
         """
-        List patient profiles with filtering and pagination.
+        List patient profiles with filtering, pagination, and user ownership scoping.
 
         Returns
         -------
@@ -103,6 +105,9 @@ class PatientService:
         total : int
         """
         query = Patient.query
+
+        if user_id is not None:
+            query = query.filter(Patient.user_id == user_id)
 
         if search:
             search_term = f"%{search.strip()}%"

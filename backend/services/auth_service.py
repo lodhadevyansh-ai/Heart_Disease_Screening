@@ -4,6 +4,7 @@ Authentication Service.
 Manages user registration, credential verification, JWT generation, and account deletion.
 """
 
+from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
@@ -140,13 +141,16 @@ class AuthService:
                 "full_name": user_dict.get("full_name") or user_dict.get("name"),
                 "email": user_dict.get("email"),
                 "patient_id": user_dict.get("patient_id"),
+                "created_at": user_dict.get("created_at"),
             },
         }, None
 
     @staticmethod
     def delete_account(user_id: int, password: str) -> Tuple[bool, Optional[str]]:
         """
-        Permanently delete the user's account after verifying current password.
+        Permanently delete the user's account and all owned clinical records
+        (patients, encounters, vitals, symptoms, documents, lab measurements, predictions)
+        after verifying current password, and purge associated uploaded files from disk.
 
         Returns
         -------
@@ -161,8 +165,51 @@ class AuthService:
             return False, "invalid_password"
 
         try:
+            from database.models import Patient, Assessment, ClinicalDocument
+            from flask import current_app
+
+            # 1. Collect all patient records owned by this user
+            owned_patients = Patient.query.filter_by(user_id=user_id).all()
+            patient_ids = [p.id for p in owned_patients]
+
+            # 2. Collect all clinical documents for these patients to delete files on disk
+            documents_to_delete = []
+            if patient_ids:
+                assessments = Assessment.query.filter(Assessment.patient_id.in_(patient_ids)).all()
+                assessment_ids = [a.id for a in assessments]
+                if assessment_ids:
+                    documents_to_delete = ClinicalDocument.query.filter(
+                        ClinicalDocument.assessment_id.in_(assessment_ids)
+                    ).all()
+
+            # Resolve file paths before database deletion
+            upload_folder = Path(current_app.config.get("UPLOAD_FOLDER"))
+            file_paths = []
+            for doc in documents_to_delete:
+                fp = upload_folder / doc.stored_filename
+                if fp.exists():
+                    file_paths.append(fp)
+
+            # 3. Unlink user from patient_profile if any
+            user.patient_id = None
+            db.session.flush()
+
+            # 4. Delete all owned patients (cascades to assessments, symptoms, vitals, docs, labs, preds)
+            for p in owned_patients:
+                db.session.delete(p)
+            db.session.flush()
+
+            # 5. Delete the user
             db.session.delete(user)
             db.session.commit()
+
+            # 6. Delete physical files from disk safely
+            for fp in file_paths:
+                try:
+                    fp.unlink(missing_ok=True)
+                except Exception as ex:
+                    current_app.logger.warning("Failed to delete physical file %s: %s", fp, str(ex))
+
             return True, None
         except Exception as e:
             db.session.rollback()

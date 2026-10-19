@@ -54,8 +54,12 @@ def patient_token(client):
 def sample_patient(app):
     """Seed a sample patient in database."""
     with app.app_context():
+        from database.models import User
+        clin = User.query.filter_by(username="clinician_demo").first()
+        clin_id = clin.id if clin else 1
         pt = Patient(
             patient_code="PT-SYNTH001",
+            user_id=clin_id,
             age=58,
             sex="Male",
             notes="Synthetic patient for automated API verification.",

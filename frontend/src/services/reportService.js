@@ -28,4 +28,9 @@ export const reportService = {
   async listLabMeasurements(assessmentId) {
     return apiClient.get(`/assessments/${assessmentId}/labs`);
   },
+
+  async parseDocument(documentId) {
+    return apiClient.post(`/documents/${documentId}/parse`);
+  },
 };
+

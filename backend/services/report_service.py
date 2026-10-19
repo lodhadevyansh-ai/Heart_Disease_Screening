@@ -71,9 +71,89 @@ class ReportService:
             is_verified_by_clinician=False,
         )
         db.session.add(doc)
-        db.session.commit()
+        db.session.flush()
 
+        # Automatic extraction of clinical PDF reports
+        saved_file_path = upload_folder / meta["stored_filename"]
+        if meta["file_type"] == "pdf" or "pdf" in meta.get("mime_type", "").lower():
+            try:
+                from backend.services.document_parser import ClinicalDocumentParser
+                raw_text = ClinicalDocumentParser.extract_text_from_pdf(saved_file_path)
+                if raw_text:
+                    parsed_items = ClinicalDocumentParser.parse_clinical_text(raw_text)
+                    if parsed_items:
+                        for item in parsed_items:
+                            lab = StructuredLabMeasurement(
+                                assessment_id=assessment_id,
+                                document_id=doc.id,
+                                test_name=item["test_name"],
+                                value_numeric=item.get("value_numeric"),
+                                value_text=item.get("value_text"),
+                                unit=item.get("unit"),
+                                reference_low=item.get("reference_low"),
+                                reference_high=item.get("reference_high"),
+                                flag=item.get("flag", "normal"),
+                            )
+                            db.session.add(lab)
+                        doc.parsing_status = "parsed"
+                    else:
+                        doc.parsing_status = "stored_unparsed"
+                else:
+                    doc.parsing_status = "stored_unparsed"
+            except Exception as parse_err:
+                current_app.logger.warning("Clinical document parsing error: %s", str(parse_err))
+                doc.parsing_status = "stored_unparsed"
+
+        db.session.commit()
         return True, doc, None
+
+    @staticmethod
+    def parse_document(document_id: int) -> Tuple[bool, Optional[ClinicalDocument], List[Dict[str, Any]], Optional[str]]:
+        """
+        Explicitly parse/reparse an uploaded clinical document and persist structured measurements.
+        """
+        doc = ClinicalDocument.query.filter_by(id=document_id).first()
+        if not doc:
+            return False, None, [], f"Document with ID {document_id} not found."
+
+        upload_folder = Path(current_app.config.get("UPLOAD_FOLDER"))
+        file_path = upload_folder / doc.stored_filename
+        if not file_path.exists():
+            return False, doc, [], "Physical document file not found on disk."
+
+        try:
+            from backend.services.document_parser import ClinicalDocumentParser
+            raw_text = ClinicalDocumentParser.extract_text_from_pdf(file_path)
+            if not raw_text:
+                doc.parsing_status = "unparseable_text"
+                db.session.commit()
+                return False, doc, [], "No readable text found in document."
+
+            parsed_items = ClinicalDocumentParser.parse_clinical_text(raw_text)
+            
+            # Remove previous measurements from this document to avoid duplicates on re-parse
+            StructuredLabMeasurement.query.filter_by(document_id=doc.id).delete()
+
+            for item in parsed_items:
+                lab = StructuredLabMeasurement(
+                    assessment_id=doc.assessment_id,
+                    document_id=doc.id,
+                    test_name=item["test_name"],
+                    value_numeric=item.get("value_numeric"),
+                    value_text=item.get("value_text"),
+                    unit=item.get("unit"),
+                    reference_low=item.get("reference_low"),
+                    reference_high=item.get("reference_high"),
+                    flag=item.get("flag", "normal"),
+                )
+                db.session.add(lab)
+
+            doc.parsing_status = "parsed" if parsed_items else "no_structured_data_found"
+            db.session.commit()
+            return True, doc, parsed_items, None
+        except Exception as e:
+            db.session.rollback()
+            return False, doc, [], f"Extraction failure: {str(e)}"
 
     @staticmethod
     def get_document(document_id: int) -> Optional[ClinicalDocument]:

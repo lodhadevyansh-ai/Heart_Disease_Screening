@@ -125,7 +125,11 @@ def reset_clinical_data(
 
         # Step 2: Identify targeted patients
         if demo_only:
-            targeted_patients = Patient.query.filter(Patient.patient_code.in_(DEMO_PATIENT_CODES)).all()
+            targeted_patients = Patient.query.filter(
+                (Patient.user_id.is_(None)) |
+                (Patient.patient_code.in_(DEMO_PATIENT_CODES)) |
+                (Patient.patient_code.like("DEMO-%"))
+            ).all()
         else:
             targeted_patients = Patient.query.all()
 
