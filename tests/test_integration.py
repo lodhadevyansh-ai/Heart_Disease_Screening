@@ -166,6 +166,7 @@ class TestEndToEndWorkflow:
         # Add structured lab values required by CAD pipeline
         labs = [
             {"test_name": "cholesterol", "value_numeric": 235.0, "unit": "mg/dL"},
+            {"test_name": "maximum_heart_rate", "value_numeric": 155.0, "unit": "bpm"},
             {"test_name": "fbs", "value_numeric": 95.0, "unit": "mg/dL"},
             {"test_name": "restecg", "value_text": "normal"},
             {"test_name": "oldpeak", "value_numeric": 1.4},

@@ -42,6 +42,7 @@ def get_assessment(assessment_id: int):
     data["clinical_notes"] = assessment.clinical_notes
     data["symptoms"] = assessment.symptoms.to_dict() if assessment.symptoms else None
     data["vitals"] = assessment.vitals.to_dict() if assessment.vitals else None
+    data["patient"] = assessment.patient.to_dict() if assessment.patient else None
     data["documents_count"] = len(assessment.documents)
     data["lab_measurements_count"] = len(assessment.lab_measurements)
     data["predictions_count"] = len(assessment.predictions)

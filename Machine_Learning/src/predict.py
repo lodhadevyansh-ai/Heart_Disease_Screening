@@ -68,6 +68,7 @@ SUPPORTED_TASKS = {
             "trestbps": (50, 260),
             "chol": (0, 700),  # 0 indicates unmeasured in legacy European cohorts
             "thalch": (50, 240),
+            "thalach": (50, 240),
             "oldpeak": (-3.0, 10.0),
             "ca": (0, 3),
         },
@@ -259,6 +260,13 @@ def validate_input_features(
                 f"Silently filling missing clinical inputs is prohibited."
             )
         return df
+
+    # For Coronary Artery Disease, symmetrically alias thalach and thalch
+    if canonical_task == "coronary_artery_disease":
+        if "thalach" in df.columns and "thalch" not in df.columns:
+            df["thalch"] = df["thalach"]
+        elif "thalch" in df.columns and "thalach" not in df.columns:
+            df["thalach"] = df["thalch"]
 
     # Validation for Heart Disease and Heart Failure
     required_features = task_cfg["required_features"]

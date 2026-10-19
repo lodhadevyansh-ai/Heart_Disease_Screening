@@ -218,6 +218,7 @@ class Assessment(BaseModel):
             "id": self.id,
             "patient_id": self.patient_id,
             "patient_code": self.patient.patient_code if self.patient else None,
+            "patient": self.patient.to_dict() if self.patient else None,
             "assessment_date": to_iso_utc(self.assessment_date),
             "status": self.status,
             "reason_for_visit": self.reason_for_visit,

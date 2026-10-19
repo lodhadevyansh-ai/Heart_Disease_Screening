@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { predictionService } from '../services/predictionService';
 import { patientService } from '../services/patientService';
 import { symptomService } from '../services/symptomService';
 import RiskCard from '../components/predictions/RiskCard';
+import ClinicalFeatureForm from '../components/predictions/ClinicalFeatureForm';
 import MedicalDisclaimer from '../components/predictions/MedicalDisclaimer';
 import Sidebar from '../components/common/Sidebar';
 import Loader from '../components/common/Loader';
@@ -29,6 +30,17 @@ export default function PredictionResults() {
   const [isInferring, setIsInferring] = useState(false);
   const [error, setError] = useState(null);
   const [unsupportedWarning, setUnsupportedWarning] = useState(null);
+  const [successBanner, setSuccessBanner] = useState(null);
+
+  const featureFormRef = useRef(null);
+  const [featureFormState, setFeatureFormState] = useState({
+    isValid: false,
+    formData: {},
+    errors: {},
+    missingFields: [],
+    readyFeatures: 0,
+    totalFeatures: 0,
+  });
 
   // Initialize patients and catalog
   useEffect(() => {
@@ -99,6 +111,14 @@ export default function PredictionResults() {
         setVitalsData(vit);
         setPredictions(preds || []);
         setTaskReadiness(readiness);
+
+        // Ensure selected patient is synced with encounter's patient
+        if (assess && assess.patient_id) {
+          setSelectedPatientId(String(assess.patient_id));
+          patientService.listAssessments(assess.patient_id).then((res) => {
+            setPatientAssessments(res || []);
+          }).catch(() => {});
+        }
       } catch (err) {
         setError(err.message || 'Failed to load encounter details.');
       }
@@ -138,18 +158,46 @@ export default function PredictionResults() {
       return;
     }
 
+    if (!featureFormState.isValid) {
+      setError(`Cannot execute inference: ${featureFormState.missingFields.length} required clinical parameters are missing or invalid. Please review and complete the fields highlighted below.`);
+      featureFormRef.current?.focusFirstMissing();
+      return;
+    }
+
     setIsInferring(true);
     setError(null);
+    setSuccessBanner(null);
     try {
       const res = await predictionService.runPrediction(assessmentId, {
         task_name: selectedTask,
         task: selectedTask,
+        patient_id: assessmentDetails?.patient_id ? Number(assessmentDetails.patient_id) : selectedPatientId ? Number(selectedPatientId) : undefined,
+        assessment_id: Number(assessmentId),
+        direct_features: featureFormState.formData,
         explain: true,
         compute_explanations: true,
       });
 
-      // Prepend newly audited prediction record
-      setPredictions((prev) => [res, ...prev]);
+      // Prepend newly audited prediction record (prevent duplicate in list)
+      setPredictions((prev) => [res, ...prev.filter((p) => p.id !== res.id)]);
+
+      // Re-fetch readiness from backend now that lab measurements are persisted
+      const updatedReadiness = await predictionService.getTaskReadiness(assessmentId).catch(() => null);
+      if (updatedReadiness) {
+        setTaskReadiness(updatedReadiness);
+      }
+
+      setSuccessBanner({
+        task_name: res.task_name,
+        model_name: res.model_name,
+        model_version: res.model_version,
+        predicted_class_label: res.predicted_class_label,
+        probability: res.calibrated_probability !== null ? (res.calibrated_probability * 100).toFixed(1) + '%' : null,
+        raw_score: res.raw_score,
+        target_definition: res.target_definition,
+        disclaimer: res.clinical_prototype_disclaimer,
+        timestamp: res.created_at,
+      });
     } catch (err) {
       setError(err.message || 'Inference execution failed.');
     } finally {
@@ -385,16 +433,17 @@ export default function PredictionResults() {
                   <span style={{
                     fontSize: '0.72rem',
                     fontWeight: 700,
-                    backgroundColor: '#e0f2fe',
-                    color: '#0369a1',
+                    backgroundColor: '#fef3c7',
+                    color: '#92400e',
+                    border: '1px solid #fde68a',
                     padding: '0.2rem 0.5rem',
                     borderRadius: 'var(--radius-pill)',
                   }}>
-                    Classifier Confidence Score
+                    Classifier Confidence Score (Uncalibrated)
                   </span>
                 </div>
                 <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.5rem', lineHeight: 1.4 }}>
-                  Predicts follow-up mortality risk (DEATH_EVENT) in diagnosed heart failure patients. Prohibited for screening.
+                  Predicts follow-up mortality risk (DEATH_EVENT) in diagnosed heart failure patients. Prohibited for screening. Experimental model (N=299).
                 </p>
                 {taskReadiness?.heart_failure_mortality && (
                   <div style={{
@@ -459,20 +508,56 @@ export default function PredictionResults() {
               </div>
             )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+            {/* Structured Clinical Input & Feature Verification Form */}
+            {selectedTask !== 'heart_failure_screening' && (
+              <ClinicalFeatureForm
+                ref={featureFormRef}
+                task={selectedTask}
+                patient={assessmentDetails?.patient || patients.find((p) => String(p.id) === String(selectedPatientId)) || null}
+                assessmentDetails={assessmentDetails}
+                symptomsData={symptomsData}
+                vitalsData={vitalsData}
+                initialFeatures={taskReadiness?.[selectedTask]?.available_features || {}}
+                onChange={(state) => setFeatureFormState(state)}
+              />
+            )}
+
+            {/* Run Inference Action Control */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                {!featureFormState.isValid && selectedTask !== 'heart_failure_screening' && (
+                  <button
+                    type="button"
+                    onClick={() => featureFormRef.current?.focusFirstMissing()}
+                    className="btn btn-secondary"
+                    style={{ fontSize: '0.84rem' }}
+                  >
+                    Review required inputs &darr;
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={handleRunInference}
-                  disabled={isInferring || !assessmentId || Boolean(unsupportedWarning)}
+                  disabled={
+                    isInferring ||
+                    !assessmentId ||
+                    Boolean(unsupportedWarning) ||
+                    selectedTask === 'heart_failure_screening' ||
+                    !featureFormState.isValid
+                  }
                   className="btn btn-primary"
-                  style={{ minWidth: '200px' }}
+                  style={{ minWidth: '220px' }}
                 >
-                  {isInferring ? 'Executing Inference...' : 'Run ML Inference \u2192'}
+                  {isInferring
+                    ? 'Executing Inference...'
+                    : selectedTask === 'heart_failure_mortality'
+                    ? 'Run Mortality Inference \u2192'
+                    : 'Run Calibrated Inference \u2192'}
                 </button>
               </div>
 
-              {Boolean(unsupportedWarning) && (
+              {Boolean(unsupportedWarning || selectedTask === 'heart_failure_screening') && (
                 <div style={{ fontSize: '0.82rem', color: '#b91c1c', fontWeight: 600, textAlign: 'right' }}>
                   &times; Inference disabled: Selected task is prohibited by clinical validation governance.
                 </div>
@@ -482,8 +567,56 @@ export default function PredictionResults() {
                   &times; Inference disabled: Please select an active clinical encounter above.
                 </div>
               )}
+              {assessmentId && selectedTask !== 'heart_failure_screening' && !featureFormState.isValid && (
+                <div style={{ fontSize: '0.84rem', color: '#b91c1c', fontWeight: 600, textAlign: 'right' }}>
+                  &times; Inference disabled: {featureFormState.missingFields?.length || 'Required'} clinical inputs are missing or invalid. Please complete the highlighted fields above.
+                </div>
+              )}
+              {assessmentId && selectedTask !== 'heart_failure_screening' && featureFormState.isValid && (
+                <div style={{ fontSize: '0.84rem', color: '#15803d', fontWeight: 600, textAlign: 'right' }}>
+                  &check; All {featureFormState.totalFeatures} required clinical features verified and ready for execution.
+                </div>
+              )}
             </div>
           </div>
+
+          {/* New Prediction Success Confirmation Banner */}
+          {successBanner && (
+            <div
+              style={{
+                backgroundColor: '#f0fdf4',
+                border: '1px solid #86efac',
+                borderRadius: 'var(--radius-lg)',
+                padding: '1.25rem 1.5rem',
+                marginBottom: '2rem',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span className="pill-badge pill-badge-green">
+                  &check; ML Inference Generated and Audited
+                </span>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-light)' }}>
+                  {formatDateTime(successBanner.timestamp)}
+                </span>
+              </div>
+              <h3 style={{ fontSize: '1.25rem', color: '#14532d', marginBottom: '0.25rem' }}>
+                {successBanner.predicted_class_label}
+              </h3>
+              <p style={{ fontSize: '0.86rem', color: '#166534', marginBottom: '0.5rem' }}>
+                {successBanner.probability ? (
+                  <><strong>Calibrated Probability: </strong>{successBanner.probability}</>
+                ) : (
+                  <><strong>Classifier Score: </strong>{successBanner.raw_score}</>
+                )} &bull; Model: {successBanner.model_name} (v{successBanner.model_version})
+              </p>
+              <p style={{ fontSize: '0.8rem', color: '#374151', lineHeight: 1.4 }}>
+                <strong>Target Definition: </strong>{successBanner.target_definition}
+                <br />
+                <span style={{ color: 'var(--text-muted)' }}>{successBanner.disclaimer}</span>
+              </p>
+            </div>
+          )}
 
           {/* Results Section */}
           <div>

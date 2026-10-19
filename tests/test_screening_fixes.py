@@ -72,6 +72,7 @@ class TestAPItoMLInputPropagation:
         )
         for name, val in [
             ("cholesterol", 210.0),
+            ("maximum_heart_rate", 150.0),
             ("fasting_blood_sugar", 100.0),
             ("restecg", "normal"),
             ("st_depression", 0.0),
@@ -97,7 +98,8 @@ class TestAPItoMLInputPropagation:
             assert mapped["age"] == 58
             assert mapped["sex"] == "Male"
             assert mapped["trestbps"] == 120.0
-            assert mapped["thalch"] == 72.0
+            assert mapped["thalch"] == 150.0
+            assert mapped["thalch"] != 72.0  # Resting heart rate 72 is not substituted for maximum exercise HR
 
         # 5. Execute inference through API
         res_pred = client.post(

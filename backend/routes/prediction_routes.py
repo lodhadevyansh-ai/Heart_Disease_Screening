@@ -43,6 +43,12 @@ def run_prediction(assessment_id: int, validated_data: PredictionRequestSchema):
     if auth_check:
         return auth_check
 
+    if validated_data.patient_id is not None and validated_data.patient_id != assessment.patient_id:
+        return api_error(400, "Bad Request", f"Provided patient_id {validated_data.patient_id} does not match encounter patient ID {assessment.patient_id}.")
+
+    if validated_data.assessment_id is not None and validated_data.assessment_id != assessment_id:
+        return api_error(400, "Bad Request", f"Provided assessment_id {validated_data.assessment_id} does not match URL assessment ID {assessment_id}.")
+
     success, pred_record, error_msg, status_code = PredictionService.execute_prediction(
         assessment_id=assessment_id,
         data=validated_data,

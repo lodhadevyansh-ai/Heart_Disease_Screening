@@ -29,6 +29,14 @@ class PredictionRequestSchema(BaseModel):
         default=None,
         description="Alias for explain",
     )
+    patient_id: Optional[int] = Field(
+        default=None,
+        description="Optional patient ID to verify ownership and encounter association",
+    )
+    assessment_id: Optional[int] = Field(
+        default=None,
+        description="Optional assessment ID to verify encounter association",
+    )
     # Optional ad-hoc or direct feature overrides.
     # When omitted or empty, features are assembled directly from the assessment's clinical records.
     direct_features: Optional[Dict[str, Any]] = Field(
