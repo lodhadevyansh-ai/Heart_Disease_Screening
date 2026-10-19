@@ -8,18 +8,26 @@ CRITICAL CLINICAL & ML RULES:
 """
 
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class PredictionRequestSchema(BaseModel):
     """Payload to trigger ML condition-risk evaluation."""
-    task_name: str = Field(
-        ...,
+    task_name: Optional[str] = Field(
+        default=None,
         description="Clinical task name ('coronary_artery_disease', 'heart_failure_mortality', 'arrhythmia_ecg')",
+    )
+    task: Optional[str] = Field(
+        default=None,
+        description="Alias for task_name",
     )
     explain: bool = Field(
         default=True,
         description="Whether to generate local feature explanations (SHAP / perturbation)",
+    )
+    compute_explanations: Optional[bool] = Field(
+        default=None,
+        description="Alias for explain",
     )
     # Optional ad-hoc or direct feature overrides.
     # When omitted or empty, features are assembled directly from the assessment's clinical records.
@@ -27,6 +35,16 @@ class PredictionRequestSchema(BaseModel):
         default=None,
         description="Explicit dictionary of model features if running direct inference.",
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def reconcile_task_and_explain(cls, values: Any) -> Any:
+        if isinstance(values, dict):
+            if not values.get("task_name") and values.get("task"):
+                values["task_name"] = values["task"]
+            if values.get("compute_explanations") is not None and "explain" not in values:
+                values["explain"] = values["compute_explanations"]
+        return values
 
 
 class ModelPredictionResponseSchema(BaseModel):

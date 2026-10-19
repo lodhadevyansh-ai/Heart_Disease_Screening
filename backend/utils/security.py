@@ -144,6 +144,32 @@ def jwt_required(optional: bool = False) -> Callable:
             try:
                 payload = decode_jwt_token(token)
                 g.current_user = payload
+
+                # Verify user account still exists in active database
+                try:
+                    from database.models import User
+                    from backend.extensions import db
+                    user_id = payload.get("sub")
+                    if user_id and str(user_id).isdigit():
+                        user_obj = db.session.get(User, int(user_id))
+                        if user_obj is None:
+                            # If database contains users, this user was deleted
+                            if User.query.first() is not None:
+                                return api_error(
+                                    401,
+                                    "Unauthorized",
+                                    "User account no longer exists or session has been revoked.",
+                                )
+                        elif not user_obj.is_active:
+                            return api_error(
+                                401,
+                                "Unauthorized",
+                                "Account has been deactivated or disabled.",
+                            )
+                except Exception:
+                    # Ignore db lookup errors in non-db test environments
+                    pass
+
             except jwt.ExpiredSignatureError:
                 return api_error(401, "Unauthorized", "Authentication token has expired. Please log in again.")
             except jwt.InvalidTokenError as e:

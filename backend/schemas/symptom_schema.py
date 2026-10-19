@@ -9,7 +9,7 @@ CRITICAL CLINICAL RULES:
 
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class AssessmentCreateSchema(BaseModel):
@@ -44,8 +44,10 @@ class PatientSymptomSchema(BaseModel):
     substernal_location: Optional[bool] = None
     exertional_provocation: Optional[bool] = None
     relieved_by_rest: Optional[bool] = None
+    rest_or_nitroglycerin_relief: Optional[bool] = None
 
     dyspnea: Optional[bool] = None
+    shortness_of_breath: Optional[bool] = None
     dyspnea_at_rest: Optional[bool] = None
     orthopnea: Optional[bool] = None
     paroxysmal_nocturnal_dyspnea: Optional[bool] = None
@@ -63,6 +65,16 @@ class PatientSymptomSchema(BaseModel):
     )
     congestive_score: Optional[int] = Field(default=None, ge=0, le=10)
     symptom_notes: Optional[str] = Field(default=None, max_length=2000)
+
+    @model_validator(mode="before")
+    @classmethod
+    def reconcile_symptom_aliases(cls, values: Any) -> Any:
+        if isinstance(values, dict):
+            if values.get("relieved_by_rest") is None and values.get("rest_or_nitroglycerin_relief") is not None:
+                values["relieved_by_rest"] = values["rest_or_nitroglycerin_relief"]
+            if values.get("dyspnea") is None and values.get("shortness_of_breath") is not None:
+                values["dyspnea"] = values["shortness_of_breath"]
+        return values
 
 
 class VitalSignSchema(BaseModel):

@@ -1,0 +1,524 @@
+/* ==========================================================================
+   CardioCare AI - Shared SaaS Navigation Header Styles
+   ========================================================================== */
+
+.navbar-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid #eef2f6;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03), 0 4px 14px rgba(15, 23, 42, 0.02);
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.navbar-container {
+  width: 100%;
+  max-width: 1260px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  box-sizing: border-box;
+}
+
+.navbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+  gap: 1.25rem;
+}
+
+/* 1. Brand Logo */
+.navbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  flex-shrink: 0;
+  user-select: none;
+  outline-offset: 4px;
+}
+
+.navbar-brand:focus-visible {
+  outline: 2px solid var(--primary-red);
+  border-radius: var(--radius-sm, 6px);
+}
+
+.navbar-brand-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #e62e3d 0%, #c71b29 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(230, 46, 61, 0.28);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.navbar-brand:hover .navbar-brand-badge {
+  transform: scale(1.04);
+}
+
+.navbar-brand-text {
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-main, #0f172a);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.navbar-brand-ai {
+  color: var(--primary-red);
+  font-weight: 900;
+  margin-left: 0.15rem;
+}
+
+/* 2. Desktop Navigation Links */
+.navbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #4b5563;
+  text-decoration: none;
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-md, 8px);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  line-height: 1.25;
+  outline-offset: 2px;
+}
+
+.nav-link:hover {
+  color: var(--primary-red);
+  background-color: var(--primary-red-subtle, #fff1f2);
+}
+
+.nav-link.active {
+  color: var(--primary-red);
+  font-weight: 700;
+  background-color: var(--primary-red-subtle, #fff1f2);
+}
+
+.nav-link:focus-visible {
+  outline: 2px solid var(--primary-red);
+}
+
+/* 3. Actions Cluster */
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+
+/* Clinician Profile Badge */
+.clinician-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.75rem;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md, 8px);
+  user-select: none;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.clinician-badge:hover {
+  border-color: #cbd5e1;
+  background-color: #f1f5f9;
+}
+
+.clinician-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: var(--primary-red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.clinician-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+
+.clinician-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main, #0f172a);
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.clinician-role {
+  font-size: 0.64rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--primary-red);
+  letter-spacing: 0.06em;
+  line-height: 1;
+  margin-top: 1px;
+}
+
+/* Secondary Button (Settings & Sign Out) */
+.btn-nav-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  height: 36px;
+  padding: 0 0.75rem;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  color: #374151;
+  font-family: var(--font-heading);
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  outline-offset: 2px;
+}
+
+.btn-nav-secondary:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: var(--text-main, #0f172a);
+}
+
+.btn-nav-secondary:focus-visible {
+  outline: 2px solid var(--primary-red);
+}
+
+/* Primary CTA Button (Start Screening) */
+.btn-nav-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  height: 38px;
+  padding: 0 1.25rem;
+  border-radius: var(--radius-pill, 9999px);
+  background: linear-gradient(135deg, #e62e3d 0%, #d42231 100%);
+  color: #ffffff;
+  font-family: var(--font-heading);
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  box-shadow: 0 3px 12px rgba(230, 46, 61, 0.28);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  outline-offset: 2px;
+}
+
+.btn-nav-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(230, 46, 61, 0.38);
+  color: #ffffff;
+}
+
+.btn-nav-primary:focus-visible {
+  outline: 2px solid var(--primary-red);
+}
+
+/* Sign In Link (Public State) */
+.btn-nav-signin {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--text-main, #0f172a);
+  padding: 0.5rem 0.85rem;
+  text-decoration: none;
+  border-radius: var(--radius-md, 8px);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-nav-signin:hover {
+  color: var(--primary-red);
+  background-color: var(--primary-red-subtle, #fff1f2);
+}
+
+/* 4. Hamburger / Mobile Toggle Button */
+.navbar-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  color: var(--text-main, #0f172a);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  outline-offset: 2px;
+}
+
+.navbar-hamburger:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.navbar-hamburger:focus-visible {
+  outline: 2px solid var(--primary-red);
+}
+
+/* 5. Mobile Drawer / Dropdown Menu */
+.navbar-mobile-drawer {
+  display: none;
+  background-color: #ffffff;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+  padding: 1.25rem 1.5rem 1.75rem;
+  animation: navDrawerFade 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes navDrawerFade {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mobile-nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.mobile-nav-link {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md, 8px);
+  font-family: var(--font-heading);
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: #334155;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.mobile-nav-link:hover,
+.mobile-nav-link.active {
+  color: var(--primary-red);
+  background-color: var(--primary-red-subtle, #fff1f2);
+}
+
+.mobile-user-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mobile-user-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md, 8px);
+}
+
+.mobile-actions-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.mobile-screening-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md, 8px);
+  background: linear-gradient(135deg, #e62e3d 0%, #d42231 100%);
+  color: #ffffff;
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(230, 46, 61, 0.3);
+  margin-top: 0.5rem;
+  transition: all 0.15s ease;
+}
+
+.mobile-screening-btn:hover {
+  background: linear-gradient(135deg, #cf2230 0%, #b51c28 100%);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   Responsive Breakpoints
+   ========================================================================== */
+
+/* Tablet & Smaller Desktops (1025px - 1200px) */
+@media (max-width: 1200px) and (min-width: 1025px) {
+  .navbar-inner {
+    gap: 0.75rem;
+  }
+  .navbar-nav {
+    gap: 0.35rem;
+  }
+  .nav-link {
+    padding: 0.4rem 0.55rem;
+    font-size: 0.86rem;
+  }
+  .clinician-name {
+    max-width: 100px;
+  }
+  .navbar-actions {
+    gap: 0.45rem;
+  }
+  .btn-nav-secondary {
+    padding: 0 0.6rem;
+    font-size: 0.8rem;
+  }
+  .btn-nav-primary {
+    padding: 0 0.95rem;
+    font-size: 0.82rem;
+  }
+}
+
+/* Tablet & Mobile Collapse (<= 1024px) */
+@media (max-width: 1024px) {
+  .navbar-nav {
+    display: none; /* Collapses into mobile drawer */
+  }
+
+  .clinician-badge {
+    display: none; /* Move to mobile drawer for clean header */
+  }
+
+  .navbar-actions .btn-nav-secondary {
+    display: none; /* Move to mobile drawer */
+  }
+
+  .btn-nav-signin {
+    display: none; /* Move to mobile drawer */
+  }
+
+  .navbar-hamburger {
+    display: flex;
+  }
+
+  .navbar-mobile-drawer.open {
+    display: block;
+  }
+}
+
+/* Mobile Devices (<= 640px) */
+@media (max-width: 640px) {
+  .navbar-container {
+    padding: 0 0.85rem;
+  }
+
+  .navbar-inner {
+    height: 64px;
+    gap: 0.5rem;
+  }
+
+  .navbar-brand-badge {
+    width: 34px;
+    height: 34px;
+  }
+
+  .navbar-brand-badge svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .navbar-brand-text {
+    font-size: 1.15rem;
+  }
+
+  .navbar-actions {
+    gap: 0.45rem;
+  }
+
+  .btn-nav-primary {
+    height: 34px;
+    padding: 0 0.75rem;
+    font-size: 0.78rem;
+  }
+
+  .btn-nav-primary svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .navbar-hamburger {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* Very Small Mobile Devices (<= 390px) */
+@media (max-width: 390px) {
+  .navbar-container {
+    padding: 0 0.6rem;
+  }
+
+  .navbar-brand {
+    gap: 0.45rem;
+  }
+
+  .navbar-brand-text {
+    font-size: 1.05rem;
+  }
+
+  .btn-nav-primary {
+    padding: 0 0.6rem;
+    font-size: 0.75rem;
+  }
+}

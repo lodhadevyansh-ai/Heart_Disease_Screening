@@ -46,8 +46,11 @@ Authorization: Bearer <access_token>
 
 | Endpoint Group | `clinician` | `admin` | `patient` | Anonymous |
 | :--- | :---: | :---: | :---: | :---: |
-| `/api/v1/auth/login` | Yes | Yes | Yes | Yes |
-| `/api/v1/auth/me` | Yes | Yes | Yes | No (401) |
+| `/api/v1/auth/register` (POST) | Yes | Yes | Yes | Yes |
+| `/api/v1/auth/login` (POST) | Yes | Yes | Yes | Yes |
+| `/api/v1/auth/logout` (POST) | Yes | Yes | Yes | Yes |
+| `/api/v1/auth/me` (GET) | Yes | Yes | Yes | No (401) |
+| `/api/v1/auth/me` (DELETE) | Yes | Yes | Yes | No (401) |
 | `/api/v1/patients` (List) | All | All | Self Only | No (401) |
 | `/api/v1/patients` (Create) | Yes | Yes | Forbidden (403) | No (401) |
 | `/api/v1/patients/<id>` (Read/Update) | Yes | Yes | Self Only (403 if other) | No (401) |

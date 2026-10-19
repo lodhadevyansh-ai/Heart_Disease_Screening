@@ -27,6 +27,7 @@ from backend.app import create_app
 from backend.extensions import db
 from database.models import (
     Patient,
+    User,
     Assessment,
     PatientSymptom,
     VitalSign,
@@ -34,6 +35,7 @@ from database.models import (
     StructuredLabMeasurement,
     ModelPrediction,
 )
+from database.db import seed_default_users
 
 
 def seed_synthetic_data(app=None) -> Dict[str, int]:
@@ -59,6 +61,9 @@ def seed_synthetic_data(app=None) -> Dict[str, int]:
     }
 
     with app.app_context():
+        # Ensure all tables exist
+        db.create_all()
+
         # Clean existing demo records if present
         demo_codes = [
             "DEMO-PT-CAD-001",
@@ -475,6 +480,9 @@ def seed_synthetic_data(app=None) -> Dict[str, int]:
         # Commit all entities
         db.session.commit()
 
+        # Seed standard demo user accounts
+        seed_default_users()
+
         counts["patients"] = 5
         counts["assessments"] = 5
         counts["symptoms"] = 5
@@ -482,6 +490,7 @@ def seed_synthetic_data(app=None) -> Dict[str, int]:
         counts["documents"] = 1
         counts["lab_measurements"] = 6
         counts["predictions"] = 3
+        counts["users"] = User.query.count()
 
     return counts
 

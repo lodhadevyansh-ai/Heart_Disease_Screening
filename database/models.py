@@ -32,7 +32,26 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 
+from werkzeug.security import check_password_hash, generate_password_hash
 from backend.extensions import db
+
+
+def to_iso_utc(dt: Optional[datetime]) -> Optional[str]:
+    """
+    Format a datetime object into a standardized, timezone-aware ISO 8601 string
+    with an explicit 'Z' UTC designator.
+    If dt is naive, explicitly localize to UTC (since all timestamps are recorded in UTC).
+    """
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        dt = dt.astimezone(timezone.utc)
+    iso = dt.isoformat()
+    if iso.endswith("+00:00"):
+        return iso[:-6] + "Z"
+    return iso
 
 
 class BaseModel(db.Model):
@@ -42,6 +61,64 @@ class BaseModel(db.Model):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
+
+
+class User(BaseModel):
+    """
+    Authenticated user account.
+
+    Stores credentials, role, and metadata for clinicians, patients, and administrators.
+    Passwords are exclusively stored as one-way cryptographic hashes.
+    """
+
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    full_name = Column(String(120), nullable=False)
+    email = Column(String(120), unique=True, nullable=False, index=True)
+    username = Column(String(60), unique=True, nullable=True, index=True)
+    password_hash = Column(String(255), nullable=False)
+    role = Column(String(30), default="patient", nullable=False)  # 'patient', 'clinician', 'admin'
+    patient_id = Column(Integer, ForeignKey("patients.id", ondelete="SET NULL"), nullable=True, index=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    # Relationships
+    patient = relationship("Patient", foreign_keys=[patient_id], backref=db.backref("user", uselist=False))
+
+    def set_password(self, password: str) -> None:
+        """Hash and set user password."""
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password: str) -> bool:
+        """Verify password against stored hash."""
+        return check_password_hash(self.password_hash, password)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Return safe user profile dictionary (excluding password hash)."""
+        return {
+            "id": self.id,
+            "full_name": self.full_name,
+            "name": self.full_name,
+            "email": self.email,
+            "username": self.username or self.email,
+            "role": self.role,
+            "patient_id": self.patient_id,
+            "is_active": self.is_active,
+            "created_at": to_iso_utc(self.created_at),
+            "updated_at": to_iso_utc(self.updated_at),
+        }
 
 
 class Patient(BaseModel):
@@ -90,8 +167,8 @@ class Patient(BaseModel):
             "sex": self.sex,
             "is_active": self.is_active,
             "assessments_count": len(self.assessments) if self.assessments is not None else 0,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "created_at": to_iso_utc(self.created_at),
+            "updated_at": to_iso_utc(self.updated_at),
         }
 
 
@@ -135,11 +212,11 @@ class Assessment(BaseModel):
             "id": self.id,
             "patient_id": self.patient_id,
             "patient_code": self.patient.patient_code if self.patient else None,
-            "assessment_date": self.assessment_date.isoformat() if self.assessment_date else None,
+            "assessment_date": to_iso_utc(self.assessment_date),
             "status": self.status,
             "reason_for_visit": self.reason_for_visit,
             "emergency_escalation_level": self.emergency_escalation_level,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": to_iso_utc(self.created_at),
         }
 
 
@@ -209,7 +286,7 @@ class PatientSymptom(BaseModel):
             "claudication": self.claudication,
             "angina_classification": self.angina_classification,
             "congestive_score": self.congestive_score,
-            "reported_at": self.reported_at.isoformat() if self.reported_at else None,
+            "reported_at": to_iso_utc(self.reported_at),
         }
 
 
@@ -259,7 +336,7 @@ class VitalSign(BaseModel):
             "height_cm": self.height_cm,
             "weight_kg": self.weight_kg,
             "bmi": self.bmi,
-            "measured_at": self.measured_at.isoformat() if self.measured_at else None,
+            "measured_at": to_iso_utc(self.measured_at),
         }
 
 
@@ -311,7 +388,7 @@ class ClinicalDocument(BaseModel):
             "document_category": self.document_category,
             "parsing_status": self.parsing_status,
             "is_verified_by_clinician": self.is_verified_by_clinician,
-            "uploaded_at": self.uploaded_at.isoformat() if self.uploaded_at else None,
+            "uploaded_at": to_iso_utc(self.uploaded_at),
         }
 
 
@@ -359,7 +436,7 @@ class StructuredLabMeasurement(BaseModel):
             "reference_low": self.reference_low,
             "reference_high": self.reference_high,
             "flag": self.flag,
-            "recorded_at": self.recorded_at.isoformat() if self.recorded_at else None,
+            "recorded_at": to_iso_utc(self.recorded_at),
         }
 
 
@@ -421,7 +498,7 @@ class ModelPrediction(BaseModel):
             "input_features_snapshot": self.input_features_snapshot,
             "explanation_snapshot": self.explanation_snapshot,
             "clinical_prototype_disclaimer": self.clinical_prototype_disclaimer,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": to_iso_utc(self.created_at),
         }
 
 

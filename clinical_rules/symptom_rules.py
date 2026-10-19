@@ -109,11 +109,19 @@ def evaluate_symptom_rules(
     # 1. Substernal chest discomfort with characteristic quality and duration
     # 2. Provoked by exertion or emotional stress
     # 3. Relieved by rest or nitroglycerin within minutes
-    is_substernal = bool(symptoms.get("substernal_location", False) or resolved_cp)
-    exertional_provocation = bool(symptoms.get("exertional_provocation", False) or symptoms.get("exang", False))
-    rest_relief = bool(symptoms.get("relieved_by_rest", False) or symptoms.get("relieved_by_nitroglycerin", False))
+    substernal_val = symptoms.get("substernal_location")
+    if substernal_val is not None:
+        is_substernal = bool(substernal_val) and resolved_cp
+    else:
+        is_substernal = resolved_cp
 
-    criteria_count = sum([is_substernal, exertional_provocation, rest_relief])
+    exertional_provocation = bool(symptoms.get("exertional_provocation", False) or symptoms.get("exang", False)) and resolved_cp
+    rest_relief = bool(symptoms.get("relieved_by_rest", False) or symptoms.get("relieved_by_nitroglycerin", False)) and resolved_cp
+
+    if not resolved_cp:
+        criteria_count = 0
+    else:
+        criteria_count = sum([is_substernal, exertional_provocation, rest_relief])
 
     if criteria_count == 3:
         angina_class = "typical_angina"

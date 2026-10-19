@@ -190,14 +190,16 @@ def create_app(config_input: Union[str, BaseConfig, Type[BaseConfig], None] = No
         return health_check()
 
     # 7. Resilient Database Initialization
-    # In testing mode (in-memory db), create tables automatically.
-    # In dev/prod, schemas are managed via Alembic migrations (flask db upgrade).
-    if app.config.get("TESTING"):
-        with app.app_context():
-            try:
+    # In testing mode (in-memory db), create tables automatically and seed default users.
+    # In dev/prod, schemas are managed via Alembic migrations, with fallback seeding.
+    with app.app_context():
+        try:
+            if app.config.get("TESTING"):
                 db.create_all()
-            except Exception as e:
-                app.logger.warning("Test database initialization warning: %s", str(e))
+            from database.db import seed_default_users
+            seed_default_users(app)
+        except Exception as e:
+            app.logger.warning("Database user initialization warning: %s", str(e))
 
     app.logger.info("Flask application initialized successfully with %s config.", config_obj.__class__.__name__)
     return app

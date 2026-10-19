@@ -86,8 +86,10 @@ def evaluate_emergency_rules(
             ),
             action_guidance=(
                 "CALL 911 / EMERGENCY MEDICAL SERVICES IMMEDIATELY. "
-                "Do not drive yourself to the hospital. Have the patient sit down, remain calm, "
-                "and chew an aspirin (325 mg) if not allergic and not contraindicated, pending EMS arrival."
+                "Do not drive yourself to the hospital. Rest in a comfortable seated position. "
+                "If instructed by emergency medical dispatch or a qualified clinician, chew a single non-enteric-coated "
+                "aspirin (162 to 325 mg), provided there are NO contraindications (e.g., active gastrointestinal bleeding, "
+                "known aspirin allergy, or suspected aortic dissection). Await EMS arrival."
             ),
             guideline_source="AHA/ACC 2021 Guideline for the Evaluation and Diagnosis of Chest Pain (Circulation 2021;144:e368-e454)",
             review_date=REVIEW_DATE,
